@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Modelo yolo
+service/yolo/model/*.pt
+!service/yolo/model/.gitkeep
+
+# Datos generados en ejecución
+data/db/*.sqlite
+data/uploads/*
+!data/db/.gitkeep
+!data/uploads/.gitkeep
+
+# Entorno
+.env
+
+# Sistema, editor
+.DS_Store
+.vscode/
+.idea/

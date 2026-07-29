@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  yolo:
+    build: ./service/yolo
+    container_name: math2pix-yolo
+    volumes:
+      - ./service/yolo/model:/app/model:ro
+    networks:
+      - math2pix-net
+      
+  ocr:
+    build: ./service/ocr
+    container_name: math2pix-ocr
+    networks:
+      - math2pix-net
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  backend:
+    build: ./service/backend
+    container_name: math2pix-backend
+    depends_on:
+      - yolo
+      - ocr
+    environment:
+      - YOLO_SERVICE_URL=http://yolo:8000
+      - OCR_SERVICE_URL=http://ocr:8000
+      - DATABASE_PATH=/app/data/db/math2pix.sqlite
+      - UPLOADS_PATH=/app/data/uploads
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks:
+      - math2pix-net
+
+  frontend:
+    build: ./service/frontend
+    container_name: math2pix-frontend
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:80:80"
+    networks:
+      - math2pix-net
+
+networks:
+  math2pix-net:
+    driver: bridge
