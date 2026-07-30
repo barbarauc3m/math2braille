@@ -17,7 +17,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 2g
 
   backend:
     build: ./service/backend

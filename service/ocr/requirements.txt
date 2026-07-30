@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+pix2tex
+pillow
+python-multipart
+torch
+torchvision
