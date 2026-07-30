@@ -1,0 +1,1 @@
+# Vacío, para que src/ sea un paquete Python
