@@ -6,11 +6,9 @@ backend y que DocumentoService traduce en filas de `formula` (con el
 campo mathml aún vacío) a través de FormulaRepository.guardar_lote()
 (Secc. 5.4.2 de la memoria). No es una entidad persistente por sí misma.
 
-Nótese que no incluye class_id: el dataset de entrenamiento distingue
-5 categorías (Definite Integral, Differentiation, Indefinite Integral,
-Limits, Trigonometry), pero para esta herramienta todas representan
-por igual una región de "fórmula matemática" — la clase se descarta
-tras usarse internamente en detector.py para escoger la confianza.
+No incluye class_id porque el dataset de entrenamiento (MathorNotV4)
+tiene una única clase ("math"): toda detección representa por
+definición una región de fórmula matemática.
 """
 
 from typing import List

@@ -2,21 +2,10 @@
 Wrapper de inferencia sobre el modelo YOLO26 exportado a ONNX.
 
 El .onnx exportado usa el formato "raw" (end2end=False): salida
-(1, 4+nc, 8400), con nc=5 (las 5 clases del dataset de Roboflow). El
-NMS se aplica manualmente con cv2.dnn.NMSBoxes, ya que no usamos la
-librería ultralytics en este servicio (RNF-01, RNF-03).
-
-Las 5 clases del dataset (Definite Integral, Differentiation,
-Indefinite Integral, Limits, Trigonometry) son irrelevantes para esta
-herramienta: todas representan por igual una región de "fórmula
-matemática", sin distinción. Por eso el class_id solo se usa
-internamente para quedarnos con el score de confianza más alto de
-cada predicción; nunca se expone en BoundingBox. El NMS además es
-class-agnostic (no separa por clase antes de filtrar duplicados), lo
-que es justo el comportamiento deseado aquí: si dos predicciones se
-solapan pero el modelo les asignó clases distintas (p. ej. una misma
-fórmula clasificada como "Trigonometry" en una pasada y "Limits" en
-otra), deben fusionarse igualmente en una sola caja.
+(1, 4+nc, 8400). El dataset de entrenamiento (MathorNotV4, Roboflow)
+tiene una única clase ("math"), por lo que nc=1 y la salida es
+(1, 5, 8400). El NMS se aplica manualmente con cv2.dnn.NMSBoxes, ya
+que no usamos la librería ultralytics en este servicio (RNF-01, RNF-03).
 """
 
 import os
