@@ -12,7 +12,7 @@ documento en el momento de la carga (CU-01).
 
 from typing import List
 
-import fitz  # PyMuPDF
+import pymupdf as fitz
 
 
 class PdfRasterizer:
@@ -41,3 +41,15 @@ class PdfRasterizer:
                 imagenes.append(pixmap.tobytes("png"))
 
         return imagenes
+
+    def rasterizar_pagina(self, pdf_path: str, numero_pagina: int) -> bytes:
+        """
+        Rasteriza una única página (1-indexada), en vez de todo el PDF.
+        Lo usa FormulaService para recortar una fórmula concreta (CU-03)
+        sin tener que re-rasterizar el documento completo cada vez.
+        """
+        matriz = fitz.Matrix(self.zoom, self.zoom)
+        with fitz.open(pdf_path) as doc:
+            pagina = doc[numero_pagina - 1]
+            pixmap = pagina.get_pixmap(matrix=matriz)
+            return pixmap.tobytes("png")

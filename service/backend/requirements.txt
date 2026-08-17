@@ -6,3 +6,4 @@ httpx
 pymupdf
 latex2mathml
 lxml
+pillow
