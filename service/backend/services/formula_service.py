@@ -6,6 +6,7 @@ Consulta la caché de mathml y permite la edición manual antes de guardar.
 
 import io
 import os
+from typing import List
 
 from PIL import Image
 
@@ -126,3 +127,6 @@ def load_formula_service() -> FormulaService:
         xhtml_validator=XhtmlValidator(),
         bbox_margin_px=int(os.environ.get("BBOX_MARGIN_PX", "10")),
     )
+
+def obtener_formulas_documento(self, documento_id: int) -> List["Formula"]:
+    return self.formula_repository.obtener_por_documento(documento_id)
