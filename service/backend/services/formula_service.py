@@ -115,18 +115,18 @@ class FormulaService:
         return self.formula_repository.actualizar_mathml(formula_id, mathml_editado)
 
 
+    def obtener_formulas_documento(self, documento_id: int) -> List["Formula"]:
+        return self.formula_repository.obtener_por_documento(documento_id)
+    
 def load_formula_service() -> FormulaService:
-    from adapters.ocr_client import load_ocr_client
+        from adapters.ocr_client import load_ocr_client
 
-    return FormulaService(
-        formula_repository=FormulaRepository(),
-        documento_repository=DocumentoRepository(),
-        pdf_rasterizer=PdfRasterizer(),
-        ocr_client=load_ocr_client(),
-        mathml_converter=MathmlConverter(),
-        xhtml_validator=XhtmlValidator(),
-        bbox_margin_px=int(os.environ.get("BBOX_MARGIN_PX", "10")),
-    )
-
-def obtener_formulas_documento(self, documento_id: int) -> List["Formula"]:
-    return self.formula_repository.obtener_por_documento(documento_id)
+        return FormulaService(
+            formula_repository=FormulaRepository(),
+            documento_repository=DocumentoRepository(),
+            pdf_rasterizer=PdfRasterizer(),
+            ocr_client=load_ocr_client(),
+            mathml_converter=MathmlConverter(),
+            xhtml_validator=XhtmlValidator(),
+            bbox_margin_px=int(os.environ.get("BBOX_MARGIN_PX", "10")),
+        )
