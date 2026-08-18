@@ -31,8 +31,8 @@ class YoloDetector:
         self,
         model_path: str,
         img_size: int = 640,
-        confidence_threshold: float = 0.5,
-        nms_iou_threshold: float = 0.45,
+        confidence_threshold: float = 0.4,
+        nms_iou_threshold: float = 0.25,
     ):
         self.img_size = img_size
         self.confidence_threshold = confidence_threshold
@@ -140,5 +140,5 @@ class YoloDetector:
 
 def load_detector() -> YoloDetector:
     model_path = os.environ.get("MODEL_PATH", "/app/model/weights.onnx")
-    confidence_threshold = float(os.environ.get("CONFIDENCE_THRESHOLD", "0.5"))
+    confidence_threshold = float(os.environ.get("CONFIDENCE_THRESHOLD", "0.25"))
     return YoloDetector(model_path=model_path, confidence_threshold=confidence_threshold)
