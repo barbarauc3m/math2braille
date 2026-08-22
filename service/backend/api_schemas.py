@@ -4,7 +4,7 @@ Esquemas Pydantic de entrada/salida de la API REST.
 Definen el contrato público con el frontend, no la estructura interna de BD.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Literal, Union
 
 from pydantic import BaseModel, Field
 
@@ -39,3 +39,14 @@ class FormulasDocumentoOut(BaseModel):
 
 class FormulaEditarIn(BaseModel):
     mathml: str = Field(..., description="Fragmento XHTML+MathML editado por el usuario (RF-12)")
+
+class ElementoTextoOut(BaseModel):
+    tipo: Literal["texto"] = "texto"
+    texto: str
+
+class ElementoFormulaOut(BaseModel):
+    tipo: Literal["formula"] = "formula"
+    formula: FormulaOut
+
+class ContenidoPaginaOut(BaseModel):
+    elementos: List[Union[ElementoTextoOut, ElementoFormulaOut]]

@@ -1,9 +1,7 @@
 """
-Endpoint de subida (POST /documentos) que transmite el progreso de la
-detección adelantada mediante streaming NDJSON: cada
+Endpoint de subida (POST /documentos) que transmite el progreso de la detección adelantada mediante streaming NDJSON: cada
 línea es un objeto JSON independiente, sin necesidad de websockets.
-DocumentoService.cargar_documento ya acepta un callback on_progreso; aquí se ejecuta en un hilo aparte y se traduce cada llamada
-al callback en una línea que se va enviando al cliente según ocurre.
+DocumentoService.cargar_documento ya acepta un callback on_progreso; aquí se ejecuta en un hilo aparte y se traduce cada llamada al callback en una línea que se va enviando al cliente según ocurre.
 """
 
 import json
@@ -12,6 +10,8 @@ import threading
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
+from api_schemas import ContenidoPaginaOut, DocumentoOut, ElementoFormulaOut, ElementoTextoOut, FormulasDocumentoOut, FormulaOut, HistorialOut
+
 
 from api_schemas import DocumentoOut, FormulasDocumentoOut, FormulaOut, HistorialOut
 from dependencies import get_documento_service, get_formula_service
@@ -134,8 +134,29 @@ def eliminar_documento(
     documento_id: int,
     documento_service: DocumentoService = Depends(get_documento_service),
 ):
-    """RF-16/CU-07. El cascade de schema.sql elimina las fórmulas asociadas."""
+    """El cascade de schema.sql elimina las fórmulas asociadas."""
     try:
         documento_service.eliminar_documento(documento_id)
     except DocumentoNoEncontradoError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    
+@router.get("/{documento_id}/paginas/{numero_pagina}/contenido", response_model=ContenidoPaginaOut)
+def obtener_contenido_pagina(
+    documento_id: int,
+    numero_pagina: int,
+    documento_service: DocumentoService = Depends(get_documento_service),
+):
+    """Leer contenido completo de una página (texto + fórmulas)."""
+    try:
+        elementos = documento_service.obtener_contenido_pagina(documento_id, numero_pagina)
+    except DocumentoNoEncontradoError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    elementos_out = []
+    for e in elementos:
+        if e["tipo"] == "texto":
+            elementos_out.append(ElementoTextoOut(texto=e["texto"]))
+        else:
+            elementos_out.append(ElementoFormulaOut(formula=_formula_a_schema(e["formula"])))
+
+    return ContenidoPaginaOut(elementos=elementos_out)

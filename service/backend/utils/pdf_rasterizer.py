@@ -53,3 +53,19 @@ class PdfRasterizer:
             pagina = doc[numero_pagina - 1]
             pixmap = pagina.get_pixmap(matrix=matriz)
             return pixmap.tobytes("png")
+        
+    def extraer_bloques_texto(self, pdf_path: str, numero_pagina: int) -> list[dict]:
+        """
+        Extrae los bloques de texto ya embebidos en el PDF, sin necesidad de OCR general: PyMuPDF los lee directamente porque el PDF los contiene como texto real, no como píxeles. Solo es fiable para PDFs exportados de documentos digitales (Word, Power Point, etc)
+        """
+        with fitz.open(pdf_path) as doc:
+            pagina = doc[numero_pagina - 1]
+            bloques_raw = pagina.get_text("blocks")
+
+        bloques = []
+        for x0, y0, x1, y1, texto, _bloque_no, tipo_bloque in bloques_raw:
+            texto_limpio = texto.strip()
+            if tipo_bloque == 0 and texto_limpio:  # tipo 0 = bloque de texto (no imagen)
+                bloques.append({"texto": texto_limpio, "x": x0, "y": y0})
+
+        return bloques
