@@ -30,6 +30,7 @@ services:
       - OCR_SERVICE_URL=http://ocr:8000
       - DATABASE_PATH=/app/data/db/math2pix.sqlite
       - UPLOADS_PATH=/app/data/uploads
+      - FRONTEND_ORIGIN=http://127.0.0.1,http://localhost
     volumes:
       - ./data:/app/data
     ports:

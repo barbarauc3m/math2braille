@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>math2braille — Inicio</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+
+  <body>
+    <header class="cabecera">
+      <h1 class="cabecera__titulo">MATH2BRAILLE</h1>
+    </header>
+
+    <div id="estado-polite" role="status" aria-live="polite" class="oculto-visualmente"></div>
+    <div id="estado-assertive" role="alert" aria-live="assertive" class="oculto-visualmente"></div>
+
+    <p id="barra-estado" class="barra-estado" aria-hidden="true"></p>
+
+    <main class="inicio">
+      <div id="inicio-acciones" class="inicio__acciones">
+        <button type="button" id="btn-nuevo" class="boton boton--principal boton--grande">
+          Abrir nuevo documento
+        </button>
+        <button type="button" id="btn-historial" class="boton boton--secundario boton--grande">
+          Abrir del historial
+        </button>
+
+        <!-- Selector de fichero. -->
+        <input type="file" id="input-pdf" accept="application/pdf"
+               class="oculto-visualmente" tabindex="-1" aria-hidden="true" />
+      </div>
+
+      <!-- Sustituye a los botones mientras se procesa un documento nuevo. -->
+      <section id="inicio-progreso" class="progreso" hidden="hidden"
+               aria-labelledby="progreso-titulo">
+        <h2 id="progreso-titulo" class="progreso__titulo">Procesando documento</h2>
+        <p id="progreso-texto" class="progreso__texto">Subiendo el documento…</p>
+        <div id="progreso-barra" class="progreso__barra" role="progressbar"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+             aria-labelledby="progreso-titulo">
+          <div id="progreso-relleno" class="progreso__relleno"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Historial -->
+    <div id="capa-modal" class="capa-modal" hidden="hidden">
+      <div id="modal-historial" class="modal" role="dialog" aria-modal="true"
+           aria-labelledby="modal-titulo">
+        <div class="modal__cabecera">
+          <h2 id="modal-titulo" class="modal__titulo" tabindex="-1">Historial de documentos</h2>
+          <button type="button" id="btn-cerrar-modal" class="boton boton--secundario">
+            Cerrar
+          </button>
+        </div>
+        <div id="modal-cuerpo" class="modal__cuerpo">
+          <p>Cargando historial…</p>
+        </div>
+      </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/tts.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/aria-live.js"></script>
+    <script src="js/home.js"></script>
+  </body>
+</html>

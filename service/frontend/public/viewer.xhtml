@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>math2braille — Visor de documento</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+
+  <body class="cuerpo-visor">
+    <header class="cabecera">
+      <h1 class="cabecera__titulo">MATH2BRAILLE</h1>
+      <button type="button" id="btn-cerrar-documento" class="boton boton--claro">
+        CERRAR
+      </button>
+    </header>
+
+    <!-- Regiones aria-live permanentes -->
+    <div id="estado-polite" role="status" aria-live="polite" class="oculto-visualmente"></div>
+    <div id="estado-assertive" role="alert" aria-live="assertive" class="oculto-visualmente"></div>
+
+    <div class="visor__superior">
+      <h2 id="nombre-documento" class="visor__nombre">Cargando documento…</h2>
+
+      <nav class="visor__nav" aria-label="Navegación del documento">
+        <button type="button" id="btn-anterior" class="boton boton--secundario" disabled="disabled">
+          ← Anterior
+        </button>
+        <span id="indicador-pagina" class="visor__pagina">Página — de —</span>
+        <button type="button" id="btn-siguiente" class="boton boton--secundario" disabled="disabled">
+          Siguiente →
+        </button>
+
+        <span class="visor__separador"></span>
+
+        <!--
+          Capa OPCIONAL de síntesis de voz. No sustituye a las regiones
+          aria-live de arriba, que funcionan igual con el toggle apagado.
+        -->
+        <button type="button" id="toggle-audio" class="boton boton--texto" aria-pressed="true">
+          🔊 Feedback auditivo: <strong id="toggle-audio-estado">activado</strong>
+        </button>
+      </nav>
+    </div>
+
+    <p id="barra-estado" class="barra-estado" aria-hidden="true"></p>
+
+    <div class="visor__cuerpo">
+      <!--
+        Contenido de la página en orden de lectura: párrafos de texto real
+        del PDF (no enfocables, el lector de pantalla los recorre con su
+        cursor virtual) intercalados con las regiones de fórmula, que son
+        los únicos elementos de esta zona que reciben Tab.
+      -->
+      <main id="pagina-contenido" class="pagina" tabindex="-1"
+            aria-labelledby="nombre-documento">
+        <p class="pagina__vacia">Cargando contenido de la página…</p>
+      </main>
+
+      <!-- Panel lateral de lectura y edición -->
+      <aside id="panel-formula" class="panel" hidden="hidden" tabindex="-1"
+             aria-labelledby="panel-titulo">
+        <div class="panel__cabecera">
+          <h2 id="panel-titulo" class="panel__titulo">Fórmula</h2>
+          <button type="button" id="btn-cerrar-panel" class="boton boton--secundario">
+            Cerrar panel
+          </button>
+        </div>
+
+        <p id="panel-meta" class="panel__meta"></p>
+
+        <p id="panel-cargando" class="panel__cargando" hidden="hidden">
+          Traduciendo fórmula… Esta operación puede tardar unos segundos.
+        </p>
+
+        <p id="panel-aviso" class="panel__aviso" hidden="hidden"></p>
+
+        <div id="panel-contenido" hidden="hidden">
+          <h3 id="titulo-vista-previa" class="panel__seccion">Vista previa (XHTML + MathML)</h3>
+          <div id="panel-vista-previa" class="panel__previa" role="group"
+               aria-labelledby="titulo-vista-previa"></div>
+
+          <h3 id="titulo-edicion" class="panel__seccion">Área de edición para MathML</h3>
+          <textarea id="editor-mathml" class="panel__editor" rows="14"
+                    spellcheck="false" autocomplete="off"
+                    aria-label="Área de edición para la fórmula seleccionada"></textarea>
+
+          <button type="button" id="btn-guardar" class="boton boton--principal boton--ancho">
+            Guardar cambios
+          </button>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="visor__pie">
+      <p>Use <strong>Tab</strong> para navegar de una fórmula a otra.</p>
+      <p>Use <strong>Intro</strong> para abrir el panel lateral de lectura y edición de fórmula.</p>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/tts.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/aria-live.js"></script>
+    <script src="js/viewer.js"></script>
+  </body>
+</html>

@@ -1,0 +1,436 @@
+/*Lógica del visor y del editor (viewer.xhtml).
+
+El visor muestra el contenido del documento y las fórmulas 
+solicitadas bajo demanda. */
+
+const NS_XHTML = "http://www.w3.org/1999/xhtml";
+
+
+/* Referencias al DOM */
+const nombreDocumento = document.getElementById("nombre-documento");
+const indicadorPagina = document.getElementById("indicador-pagina");
+const btnAnterior = document.getElementById("btn-anterior");
+const btnSiguiente = document.getElementById("btn-siguiente");
+const btnCerrarDocumento = document.getElementById("btn-cerrar-documento");
+const contenedorPagina = document.getElementById("pagina-contenido");
+
+const panel = document.getElementById("panel-formula");
+const panelTitulo = document.getElementById("panel-titulo");
+const panelMeta = document.getElementById("panel-meta");
+const panelCargando = document.getElementById("panel-cargando");
+const panelAviso = document.getElementById("panel-aviso");
+const panelContenido = document.getElementById("panel-contenido");
+const panelVistaPrevia = document.getElementById("panel-vista-previa");
+const editorMathml = document.getElementById("editor-mathml");
+const btnGuardar = document.getElementById("btn-guardar");
+const btnCerrarPanel = document.getElementById("btn-cerrar-panel");
+
+const toggleAudio = document.getElementById("toggle-audio");
+const toggleAudioEstado = document.getElementById("toggle-audio-estado");
+
+
+/* Estado de la pantalla */
+const parametros = new URLSearchParams(window.location.search);
+const documentoId = Number.parseInt(parametros.get("documento_id"), 10);
+let paginaActual = Number.parseInt(parametros.get("pagina"), 10) || 1;
+
+let documento = null;
+let formulasPagina = [];
+let seleccionada = null;
+
+
+/* Utilidades de MathML */
+function parsearMathml(cadena) {
+  if (!cadena) {
+    return null;
+  }
+  const envuelto = '<div xmlns="' + NS_XHTML + '">' + cadena + "</div>";
+  let arbol;
+  try {
+    arbol = new DOMParser().parseFromString(envuelto, "application/xhtml+xml");
+  } catch (error) {
+    return null;
+  }
+  if (!arbol.documentElement || arbol.querySelector("parsererror")) {
+    return null;
+  }
+
+  const fragmento = document.createDocumentFragment();
+  Array.prototype.forEach.call(arbol.documentElement.childNodes, (hijo) => {
+    fragmento.appendChild(document.importNode(hijo, true));
+  });
+  return fragmento;
+}
+
+function pintarMathml(contenedor, mathml) {
+  contenedor.textContent = "";
+  const nodos = parsearMathml(mathml);
+  if (nodos) {
+    contenedor.appendChild(nodos);
+    return true;
+  }
+  contenedor.textContent = mathml || "";
+  return false;
+}
+
+
+/* Regiones de fórmula */
+function refrescarRegion(entrada, activa) {
+  const { boton, formula, numero } = entrada;
+  const procesada = Boolean(formula.mathml);
+
+  boton.classList.toggle("procesada", procesada);
+  boton.classList.toggle("activa", activa);
+
+  let estado = "Aún sin procesar.";
+  if (activa) {
+    estado = "Seleccionada.";
+  } else if (procesada) {
+    estado = "Procesada.";
+  }
+  boton.setAttribute("aria-label", "Fórmula " + numero + ". " + estado);
+  boton.setAttribute("aria-expanded", activa ? "true" : "false");
+
+  if (procesada) {
+    pintarMathml(boton, formula.mathml);
+  } else {
+    boton.textContent = "…";
+  }
+}
+
+function crearRegion(formula, numero) {
+  const boton = document.createElement("button");
+  boton.type = "button";
+  boton.className = "formula-region";
+  boton.dataset.formulaId = String(formula.id);
+  boton.setAttribute("aria-controls", "panel-formula");
+
+  const entrada = { formula, numero, boton };
+  boton.addEventListener("click", () => seleccionarFormula(numero));
+
+  refrescarRegion(entrada, false);
+  return entrada;
+}
+
+
+/* Carga y pintado de la página */
+async function cargarDocumento() {
+  if (!Number.isInteger(documentoId) || documentoId <= 0) {
+    contenedorPagina.textContent = "";
+    const aviso = document.createElement("p");
+    aviso.className = "panel__aviso";
+    aviso.textContent =
+      "No se ha indicado ningún documento. Vuelve a la pantalla de inicio y abre uno.";
+    contenedorPagina.appendChild(aviso);
+    anunciar("No se ha indicado ningún documento válido.", "assertive");
+    return;
+  }
+
+  try {
+    documento = await abrirDocumento(documentoId);
+  } catch (error) {
+    anunciar("No se ha podido abrir el documento. " + error.mensaje, "assertive");
+    return;
+  }
+
+  document.title = documento.nombre_archivo + " — math2braille";
+  nombreDocumento.textContent = documento.nombre_archivo;
+
+  const total = documento.num_paginas || 1;
+  if (paginaActual < 1) {
+    paginaActual = 1;
+  }
+  if (paginaActual > total) {
+    paginaActual = total;
+  }
+
+  await cargarPagina();
+}
+
+async function cargarPagina() {
+  const total = documento.num_paginas || 1;
+  indicadorPagina.textContent = "Página " + paginaActual + " de " + total;
+  btnAnterior.disabled = paginaActual <= 1;
+  btnSiguiente.disabled = paginaActual >= total;
+
+  contenedorPagina.textContent = "";
+  const cargando = document.createElement("p");
+  cargando.className = "pagina__vacia";
+  cargando.textContent = "Cargando contenido de la página…";
+  contenedorPagina.appendChild(cargando);
+
+  anunciar("Cargando la página " + paginaActual + " de " + total + ".");
+
+  let elementos;
+  try {
+    elementos = await obtenerContenidoPagina(documentoId, paginaActual);
+  } catch (error) {
+    contenedorPagina.textContent = "";
+    const aviso = document.createElement("p");
+    aviso.className = "panel__aviso";
+    aviso.textContent = error.mensaje;
+    contenedorPagina.appendChild(aviso);
+    anunciar(
+      "No se ha podido cargar el contenido de la página. " + error.mensaje,
+      "assertive"
+    );
+    return;
+  }
+
+  pintarContenido(elementos);
+}
+
+function pintarContenido(elementos) {
+  contenedorPagina.textContent = "";
+  formulasPagina = [];
+
+  if (elementos.length === 0) {
+    const vacio = document.createElement("p");
+    vacio.className = "pagina__vacia";
+    vacio.textContent = "Esta página no contiene texto ni fórmulas detectadas.";
+    contenedorPagina.appendChild(vacio);
+    anunciar("Página " + paginaActual + ": sin contenido detectado.");
+    return;
+  }
+
+  elementos.forEach((elemento) => {
+    if (elemento.tipo === "texto") {
+      const parrafo = document.createElement("p");
+      parrafo.className = "pagina__texto";
+      parrafo.textContent = elemento.texto;
+      contenedorPagina.appendChild(parrafo);
+      return;
+    }
+
+    if (elemento.tipo === "formula" && elemento.formula) {
+      const entrada = crearRegion(elemento.formula, formulasPagina.length + 1);
+      formulasPagina.push(entrada);
+      contenedorPagina.appendChild(entrada.boton);
+    }
+  });
+
+  const total = documento.num_paginas || 1;
+  if (formulasPagina.length === 0) {
+    anunciar(
+      "Página " + paginaActual + " de " + total + " cargada. No hay fórmulas en esta página."
+    );
+  } else {
+    anunciar(
+      "Página " +
+        paginaActual +
+        " de " +
+        total +
+        " cargada. " +
+        formulasPagina.length +
+        (formulasPagina.length === 1 ? " fórmula detectada." : " fórmulas detectadas.") +
+        " Use Tab para recorrerlas e Intro para abrir el panel."
+    );
+  }
+}
+
+
+/* Panel lateral */
+function mostrarCargandoPanel(cargando) {
+  panelCargando.hidden = !cargando;
+  panelContenido.hidden = cargando;
+}
+
+function mostrarAvisoPanel(mensaje) {
+  if (mensaje) {
+    panelAviso.textContent = mensaje;
+    panelAviso.hidden = false;
+  } else {
+    panelAviso.textContent = "";
+    panelAviso.hidden = true;
+  }
+}
+
+function volcarFormulaEnPanel(formula) {
+  const valido = pintarMathml(panelVistaPrevia, formula.mathml);
+  editorMathml.value = formula.mathml || "";
+  mostrarCargandoPanel(false);
+  if (!valido && formula.mathml) {
+    mostrarAvisoPanel(
+      "El MathML almacenado no se ha podido representar. Se muestra su código en la vista previa."
+    );
+  }
+}
+
+async function seleccionarFormula(numero) {
+  const entrada = formulasPagina[numero - 1];
+  if (!entrada) {
+    return;
+  }
+
+  if (seleccionada !== null && seleccionada !== numero) {
+    const previa = formulasPagina[seleccionada - 1];
+    if (previa) {
+      refrescarRegion(previa, false);
+    }
+  }
+
+  seleccionada = numero;
+  refrescarRegion(entrada, true);
+
+  panel.hidden = false;
+  panelTitulo.textContent = "Fórmula " + numero;
+  panelMeta.textContent =
+    "Página " +
+    entrada.formula.pagina +
+    " · Confianza de detección: " +
+    Math.round((entrada.formula.confidence_score || 0) * 100) +
+    " %";
+  mostrarAvisoPanel("");
+
+  panel.focus();
+
+  if (entrada.formula.mathml) {
+    volcarFormulaEnPanel(entrada.formula);
+    anunciar("Fórmula " + numero + " seleccionada. Ya estaba traducida.");
+    return;
+  }
+
+  mostrarCargandoPanel(true);
+  anunciar("Traduciendo la fórmula " + numero + ". Esto puede tardar unos segundos.");
+
+  let actualizada;
+  try {
+    actualizada = await consultarFormula(entrada.formula.id);
+  } catch (error) {
+    if (seleccionada !== numero) {
+      return;
+    }
+    mostrarCargandoPanel(false);
+    mostrarAvisoPanel(error.mensaje);
+    editorMathml.value = "";
+    panelVistaPrevia.textContent = "";
+    anunciar(
+      "No se ha podido traducir la fórmula " +
+        numero +
+        ". " +
+        error.mensaje +
+        " Puedes escribir el MathML a mano en el área de edición.",
+      "assertive"
+    );
+    return;
+  }
+
+  if (seleccionada !== numero) {
+    entrada.formula = actualizada;
+    refrescarRegion(entrada, false);
+    return;
+  }
+
+  entrada.formula = actualizada;
+  volcarFormulaEnPanel(actualizada);
+  refrescarRegion(entrada, true);
+  anunciar("Fórmula " + numero + " traducida. Ya puedes leerla o editarla.");
+}
+
+function cerrarPanel() {
+  if (seleccionada === null) {
+    return;
+  }
+  const entrada = formulasPagina[seleccionada - 1];
+  panel.hidden = true;
+  mostrarAvisoPanel("");
+  seleccionada = null;
+
+  if (entrada) {
+    refrescarRegion(entrada, false);
+    entrada.boton.focus();
+  }
+  anunciar("Panel cerrado.");
+}
+
+async function guardarCambios() {
+  if (seleccionada === null) {
+    return;
+  }
+  const entrada = formulasPagina[seleccionada - 1];
+  if (!entrada) {
+    return;
+  }
+
+  const numero = entrada.numero;
+  const mathmlEditado = editorMathml.value;
+
+  btnGuardar.disabled = true;
+  mostrarAvisoPanel("");
+  anunciar("Guardando los cambios de la fórmula " + numero + ".");
+
+  try {
+    const actualizada = await guardarFormula(entrada.formula.id, mathmlEditado);
+    entrada.formula = actualizada;
+
+    pintarMathml(panelVistaPrevia, actualizada.mathml);
+    refrescarRegion(entrada, true);
+    anunciar("Fórmula guardada correctamente.");
+  } catch (error) {
+    mostrarAvisoPanel(error.mensaje);
+    anunciar(
+      "No se ha podido guardar la fórmula. " +
+        error.mensaje +
+        " Revisa la sintaxis del MathML e inténtalo de nuevo.",
+      "assertive"
+    );
+  } finally {
+    btnGuardar.disabled = false;
+  }
+}
+
+
+/* Eventos */
+if (btnCerrarPanel && btnGuardar) {
+  btnCerrarPanel.addEventListener("click", cerrarPanel);
+  btnGuardar.addEventListener("click", guardarCambios);
+}
+
+document.addEventListener("keydown", (evento) => {
+  if (evento.key === "Escape" && panel && !panel.hidden) {
+    evento.preventDefault();
+    cerrarPanel();
+  }
+});
+
+function irAPagina(numero) {
+  window.location.href =
+    "viewer.xhtml?documento_id=" +
+    encodeURIComponent(documentoId) +
+    "&pagina=" +
+    encodeURIComponent(numero);
+}
+
+if (btnAnterior && btnSiguiente && btnCerrarDocumento) {
+  btnAnterior.addEventListener("click", () => {
+    if (paginaActual > 1) {
+      irAPagina(paginaActual - 1);
+    }
+  });
+
+  btnSiguiente.addEventListener("click", () => {
+    if (documento && paginaActual < documento.num_paginas) {
+      irAPagina(paginaActual + 1);
+    }
+  });
+
+  btnCerrarDocumento.addEventListener("click", () => {
+    window.location.href = "index.xhtml";
+  });
+}
+
+
+/* Arranque */
+inicializarAnuncios();
+
+if (toggleAudio) {
+  conectarToggle(toggleAudio, toggleAudioEstado, (activado) => {
+    anunciar(
+      activado
+        ? "Feedback auditivo activado."
+        : "Feedback auditivo desactivado. El lector de pantalla sigue funcionando."
+    );
+  });
+}
+
+cargarDocumento();
