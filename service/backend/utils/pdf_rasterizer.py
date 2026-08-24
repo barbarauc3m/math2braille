@@ -74,18 +74,57 @@ class PdfRasterizer:
             pixmap = pagina.get_pixmap(matrix=matriz)
             return pixmap.tobytes("png")
         
-    def extraer_bloques_texto(self, pdf_path: str, numero_pagina: int) -> list[dict]:
+    def extraer_bloques_texto(
+        self,
+        pdf_path: str,
+        numero_pagina: int,
+        cajas_a_ignorar: "list[tuple[float, float, float, float]] | None" = None,
+        margen_pts: float = 6.0,
+    ) -> list[dict]:
         """
         Extrae los bloques de texto ya embebidos en el PDF, sin necesidad de OCR general: PyMuPDF los lee directamente porque el PDF los contiene como texto real, no como píxeles. Solo es fiable para PDFs exportados de documentos digitales (Word, Power Point, etc)
+
+        `cajas_a_ignorar` son rectángulos (x0, y0, x1, y1) en puntos PDF —
+        normalmente las cajas de fórmula ya detectadas por YOLO— cuyo
+        contenido se **redacta** (se borra del propio content stream de la
+        página, no solo visualmente) antes de llamar a get_text(). Esto
+        evita que una fórmula, al ser texto real embebido en el PDF, se
+        lea dos veces: una aquí como texto plano y otra ya traducida por
+        service/ocr. Filtrar a posteriori por solapamiento de bbox no es
+        fiable porque PyMuPDF puede trocear una misma fórmula en varios
+        bloques pequeños (p.ej. los límites de una integral quedan en un
+        bloque aparte, por encima/debajo del cuerpo) o fundirla con texto
+        vecino en un bloque más grande; redactar antes de extraer elimina
+        el problema de raíz en vez de intentar adivinarlo después.
+
+        `margen_pts` amplía cada caja antes de redactar: la caja de YOLO
+        está ajustada al contenido visual, pero PyMuPDF puede registrar
+        glifos (sub/superíndices, símbolos) que sobresalen ligeramente de
+        ella; sin margen, esos fragmentos sueltos sobrevivirían a la
+        redacción y seguirían apareciendo como texto suelto.
+
+        Como el documento se abre y se descarta dentro de este método sin
+        llamar a doc.save(), la redacción es puramente en memoria: el PDF
+        original en disco no se modifica.
         """
         with fitz.open(pdf_path) as doc:
             pagina = doc[numero_pagina - 1]
+
+            if cajas_a_ignorar:
+                for x0, y0, x1, y1 in cajas_a_ignorar:
+                    rect = fitz.Rect(
+                        x0 - margen_pts, y0 - margen_pts,
+                        x1 + margen_pts, y1 + margen_pts,
+                    )
+                    pagina.add_redact_annot(rect)
+                pagina.apply_redactions()
+
             bloques_raw = pagina.get_text("blocks")
 
         bloques = []
         for x0, y0, x1, y1, texto, _bloque_no, tipo_bloque in bloques_raw:
             texto_limpio = _corregir_acentos(texto.strip())
             if tipo_bloque == 0 and texto_limpio:  # tipo 0 = bloque de texto (no imagen)
-                bloques.append({"texto": texto_limpio, "x": x0, "y": y0})
+                bloques.append({"texto": texto_limpio, "x": x0, "y": y0, "x1": x1, "y1": y1})
 
         return bloques

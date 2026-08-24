@@ -6,7 +6,7 @@ servicio se invoca bajo demanda (solo cuando el usuario selecciona una fórmula 
 
 El LaTeX que devuelve es un formato transitorio (no se persiste en SQLite): FormulaService lo pasa inmediatamente a MathmlConverter para obtener el MathML que sí se guarda en la tabla `formula`.
 
-De forma previa al reconocimiento, se realiza un reescalado de la imagen para reducir su dimensión a un ancho de 300px, pues se comprobó de forma empírica que pix2tex realiza mejores predicciones con imágenes más pequeñas. El reescalado se hace manteniendo el aspect ratio y sin recortar la imagen, para no perder información de la fórmula.
+De forma previa al reconocimiento, se realiza un reescalado de la imagen para reducir su dimensión a un ancho de 350px, pues se comprobó de forma empírica que pix2tex realiza mejores predicciones con imágenes más pequeñas. El reescalado se hace manteniendo el aspect ratio y sin recortar la imagen, para no perder información de la fórmula.
 """
 
 import io
@@ -15,7 +15,7 @@ import os
 from PIL import Image
 from pix2tex.cli import LatexOCR
 
-OCR_TARGET_WIDTH_PX = int(os.environ.get("OCR_TARGET_WIDTH_PX", "300"))
+OCR_TARGET_WIDTH_PX = int(os.environ.get("OCR_TARGET_WIDTH_PX", "350"))
 
 
 class FormulaRecognizer:

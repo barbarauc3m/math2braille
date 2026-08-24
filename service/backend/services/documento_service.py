@@ -123,22 +123,29 @@ class DocumentoService:
         if documento is None:
             raise DocumentoNoEncontradoError(f"No existe el documento {documento_id}")
 
-        bloques_texto = self.pdf_rasterizer.extraer_bloques_texto(documento.ruta_archivo, numero_pagina)
         formulas_pagina = [
             f for f in self.formula_repository.obtener_por_documento(documento_id)
             if f.pagina == numero_pagina
         ]
 
         # f.x / f.y están en píxeles de la imagen rasterizada a 200 dpi
-        # (así los usa FormulaService para recortar), mientras que b["x"] /
-        # b["y"] vienen de PyMuPDF en puntos PDF (72 pt/pulgada), sin
-        # escalar. Si se comparan tal cual, el y de una fórmula sale ~2.78
-        # veces mayor que el de un texto en la misma posición física, y las
-        # fórmulas acaban ordenándose casi siempre después de todo el texto
-        # de la página. Se dividen aquí por el mismo zoom usado al
-        # rasterizar para llevarlas a puntos PDF, solo a efectos de orden;
-        # no se modifica lo que hay guardado en la tabla formula.
+        # (así los usa FormulaService para recortar), mientras que
+        # PyMuPDF trabaja en puntos PDF (72 pt/pulgada), sin escalar. Se
+        # convierten aquí las cajas de fórmula a puntos para: (a) que
+        # PdfRasterizer pueda redactarlas antes de leer el texto de la
+        # página (evita leer la fórmula dos veces, como texto plano y
+        # como traducción MathML), y (b) poder ordenar más abajo texto y
+        # fórmulas en la misma unidad.
         zoom = self.pdf_rasterizer.zoom
+        formulas_bbox_pts = [
+            (f.x / zoom, f.y / zoom, (f.x + f.ancho) / zoom, (f.y + f.alto) / zoom)
+            for f in formulas_pagina
+        ]
+
+        bloques_texto = self.pdf_rasterizer.extraer_bloques_texto(
+            documento.ruta_archivo, numero_pagina, cajas_a_ignorar=formulas_bbox_pts
+        )
+
         elementos = (
             [{"tipo": "texto", "y": b["y"], "x": b["x"], "texto": b["texto"]} for b in bloques_texto]
             + [
