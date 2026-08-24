@@ -510,8 +510,10 @@ h3 {
   background: var(--blanco);
   border: 2px solid var(--borde-fuerte);
   border-radius: var(--radio);
-  white-space: pre;
-  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  overflow-x: hidden;
+  overflow-y: auto;
   resize: vertical;
 }
 
