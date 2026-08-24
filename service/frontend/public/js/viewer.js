@@ -79,7 +79,7 @@ function refrescarRegion(entrada, activa) {
   boton.classList.toggle("procesada", procesada);
   boton.classList.toggle("activa", activa);
 
-  let estado = "Aún sin procesar.";
+  let estado = "Sin procesar";
   if (activa) {
     estado = "Seleccionada.";
   } else if (procesada) {

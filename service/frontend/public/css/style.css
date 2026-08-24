@@ -335,12 +335,17 @@ h3 {
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .visor__pagina {
   font-weight: 600;
   min-width: 8rem;
   text-align: center;
+}
+
+.visor__cerrar {
+  margin-left: auto;
 }
 
 .visor__separador {

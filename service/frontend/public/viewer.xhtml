@@ -11,9 +11,6 @@
   <body class="cuerpo-visor">
     <header class="cabecera">
       <h1 class="cabecera__titulo">MATH2BRAILLE</h1>
-      <button type="button" id="btn-cerrar-documento" class="boton boton--claro">
-        CERRAR
-      </button>
     </header>
 
     <!-- Regiones aria-live permanentes -->
@@ -24,11 +21,15 @@
 
       <nav class="visor__nav" aria-label="Navegación del documento">
         <button type="button" id="btn-anterior" class="boton boton--secundario" disabled="disabled">
-          ← Anterior
+          Anterior
         </button>
         <span id="indicador-pagina" class="visor__pagina">Página — de —</span>
         <button type="button" id="btn-siguiente" class="boton boton--secundario" disabled="disabled">
-          Siguiente →
+          Siguiente
+        </button>
+
+        <button type="button" id="btn-cerrar-documento" class="boton boton--secundario visor__cerrar">
+          CERRAR DOCUMENTO
         </button>
       </nav>
     </div>
