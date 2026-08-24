@@ -17,7 +17,6 @@
     </header>
 
     <!-- Regiones aria-live permanentes -->
-    <div id="estado-polite" role="status" aria-live="polite" class="oculto-visualmente"></div>
     <div id="estado-assertive" role="alert" aria-live="assertive" class="oculto-visualmente"></div>
 
     <div class="visor__superior">
@@ -30,16 +29,6 @@
         <span id="indicador-pagina" class="visor__pagina">Página — de —</span>
         <button type="button" id="btn-siguiente" class="boton boton--secundario" disabled="disabled">
           Siguiente →
-        </button>
-
-        <span class="visor__separador"></span>
-
-        <!--
-          Capa OPCIONAL de síntesis de voz. No sustituye a las regiones
-          aria-live de arriba, que funcionan igual con el toggle apagado.
-        -->
-        <button type="button" id="toggle-audio" class="boton boton--texto" aria-pressed="true">
-          🔊 Feedback auditivo: <strong id="toggle-audio-estado">activado</strong>
         </button>
       </nav>
     </div>
@@ -99,7 +88,6 @@
     </footer>
 
     <script src="js/config.js"></script>
-    <script src="js/tts.js"></script>
     <script src="js/api.js"></script>
     <script src="js/aria-live.js"></script>
     <script src="js/viewer.js"></script>

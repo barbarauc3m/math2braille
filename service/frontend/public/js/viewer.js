@@ -25,9 +25,6 @@ const editorMathml = document.getElementById("editor-mathml");
 const btnGuardar = document.getElementById("btn-guardar");
 const btnCerrarPanel = document.getElementById("btn-cerrar-panel");
 
-const toggleAudio = document.getElementById("toggle-audio");
-const toggleAudioEstado = document.getElementById("toggle-audio-estado");
-
 
 /* Estado de la pantalla */
 const parametros = new URLSearchParams(window.location.search);
@@ -159,7 +156,11 @@ async function cargarPagina() {
   cargando.textContent = "Cargando contenido de la página…";
   contenedorPagina.appendChild(cargando);
 
-  anunciar("Cargando la página " + paginaActual + " de " + total + ".");
+  // No se anuncia "Cargando la página..." aquí: sería un segundo mensaje
+  // por cada navegación, hablado casi a la vez que el definitivo de más
+  // abajo -- con assertive el segundo corta al primero de todos modos, así
+  // que solo consigue que el primero se oiga a medias. Un único mensaje al
+  // terminar de cargar es más claro y más corto.
 
   let elementos;
   try {
@@ -215,6 +216,9 @@ function pintarContenido(elementos) {
       "Página " + paginaActual + " de " + total + " cargada. No hay fórmulas en esta página."
     );
   } else {
+    // Se omite deliberadamente el recordatorio de Tab/Intro: ya está fijo y
+    // visible en el <footer>, y repetirlo en cada página solo alarga el
+    // mensaje sin añadir información nueva.
     anunciar(
       "Página " +
         paginaActual +
@@ -222,8 +226,7 @@ function pintarContenido(elementos) {
         total +
         " cargada. " +
         formulasPagina.length +
-        (formulasPagina.length === 1 ? " fórmula detectada." : " fórmulas detectadas.") +
-        " Use Tab para recorrerlas e Intro para abrir el panel."
+        (formulasPagina.length === 1 ? " fórmula detectada." : " fórmulas detectadas.")
     );
   }
 }
@@ -286,7 +289,7 @@ async function seleccionarFormula(numero) {
 
   if (entrada.formula.mathml) {
     volcarFormulaEnPanel(entrada.formula);
-    anunciar("Fórmula " + numero + " seleccionada. Ya estaba traducida.");
+    anunciar("Fórmula " + numero + ", ya traducida.");
     return;
   }
 
@@ -324,7 +327,7 @@ async function seleccionarFormula(numero) {
   entrada.formula = actualizada;
   volcarFormulaEnPanel(actualizada);
   refrescarRegion(entrada, true);
-  anunciar("Fórmula " + numero + " traducida. Ya puedes leerla o editarla.");
+  anunciar("Fórmula " + numero + " traducida.");
 }
 
 function cerrarPanel() {
@@ -422,15 +425,5 @@ if (btnAnterior && btnSiguiente && btnCerrarDocumento) {
 
 /* Arranque */
 inicializarAnuncios();
-
-if (toggleAudio) {
-  conectarToggle(toggleAudio, toggleAudioEstado, (activado) => {
-    anunciar(
-      activado
-        ? "Feedback auditivo activado."
-        : "Feedback auditivo desactivado. El lector de pantalla sigue funcionando."
-    );
-  });
-}
 
 cargarDocumento();

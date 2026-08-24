@@ -52,14 +52,6 @@ function actualizarBarra(porcentaje, texto) {
   textoProgreso.textContent = texto;
 }
 
-function tocaNarrar(pagina, total) {
-  if (pagina === 1 || pagina === total) {
-    return true;
-  }
-  const paso = Math.max(1, Math.ceil(total / 10));
-  return pagina % paso === 0;
-}
-
 async function procesarSubida(archivo) {
   mostrarProgreso(true);
   anunciar("Subiendo " + archivo.name + ".");
@@ -73,7 +65,7 @@ async function procesarSubida(archivo) {
         const mensaje =
           "Detectando fórmulas: página " + evento.pagina + " de " + total + ".";
         actualizarBarra((evento.pagina / total) * 100, mensaje);
-        anunciar(mensaje, "polite", { voz: tocaNarrar(evento.pagina, total) });
+        anunciar(mensaje, "polite");
       } else if (evento.tipo === "completado") {
         documentoCreado = evento.documento;
       } else if (evento.tipo === "error") {
