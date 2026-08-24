@@ -129,9 +129,22 @@ class DocumentoService:
             if f.pagina == numero_pagina
         ]
 
+        # f.x / f.y están en píxeles de la imagen rasterizada a 200 dpi
+        # (así los usa FormulaService para recortar), mientras que b["x"] /
+        # b["y"] vienen de PyMuPDF en puntos PDF (72 pt/pulgada), sin
+        # escalar. Si se comparan tal cual, el y de una fórmula sale ~2.78
+        # veces mayor que el de un texto en la misma posición física, y las
+        # fórmulas acaban ordenándose casi siempre después de todo el texto
+        # de la página. Se dividen aquí por el mismo zoom usado al
+        # rasterizar para llevarlas a puntos PDF, solo a efectos de orden;
+        # no se modifica lo que hay guardado en la tabla formula.
+        zoom = self.pdf_rasterizer.zoom
         elementos = (
             [{"tipo": "texto", "y": b["y"], "x": b["x"], "texto": b["texto"]} for b in bloques_texto]
-            + [{"tipo": "formula", "y": f.y, "x": f.x, "formula": f} for f in formulas_pagina]
+            + [
+                {"tipo": "formula", "y": f.y / zoom, "x": f.x / zoom, "formula": f}
+                for f in formulas_pagina
+            ]
         )
         elementos.sort(key=lambda e: (e["y"], e["x"]))
         return elementos
