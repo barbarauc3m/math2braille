@@ -79,7 +79,7 @@ class PdfRasterizer:
         pdf_path: str,
         numero_pagina: int,
         cajas_a_ignorar: "list[tuple[float, float, float, float]] | None" = None,
-        margen_pts: float = 6.0,
+        factor_encogimiento: float = 1,
     ) -> list[dict]:
         """
         Extrae los bloques de texto ya embebidos en el PDF, sin necesidad de OCR general: PyMuPDF los lee directamente porque el PDF los contiene como texto real, no como píxeles. Solo es fiable para PDFs exportados de documentos digitales (Word, Power Point, etc)
@@ -97,11 +97,18 @@ class PdfRasterizer:
         vecino en un bloque más grande; redactar antes de extraer elimina
         el problema de raíz en vez de intentar adivinarlo después.
 
-        `margen_pts` amplía cada caja antes de redactar: la caja de YOLO
-        está ajustada al contenido visual, pero PyMuPDF puede registrar
-        glifos (sub/superíndices, símbolos) que sobresalen ligeramente de
-        ella; sin margen, esos fragmentos sueltos sobrevivirían a la
-        redacción y seguirían apareciendo como texto suelto.
+        `factor_encogimiento` reduce cada caja hacia su centro antes de
+        redactar (0.8 = se conserva el 80% del ancho y el alto). Las cajas
+        de YOLO suelen venir más holgadas que el contenido real de la
+        fórmula, y `apply_redactions()` borra carácter a carácter, no
+        bloque a bloque: si la caja se pasa de la fórmula e invade el
+        bloque de texto vecino (p.ej. la descripción "a) Derivada de..."
+        justo encima), ese bloque queda truncado a medias, con un bbox que
+        ya no refleja su posición real de lectura — lo que además
+        descoloca el orden en obtener_contenido_pagina. Es preferible
+        encoger de más y dejar algún glifo suelto de la propia fórmula
+        (irrelevante, porque esa región ya se sustituye por su traducción
+        MathML) que invadir texto ajeno.
 
         Como el documento se abre y se descarta dentro de este método sin
         llamar a doc.save(), la redacción es puramente en memoria: el PDF
@@ -112,9 +119,12 @@ class PdfRasterizer:
 
             if cajas_a_ignorar:
                 for x0, y0, x1, y1 in cajas_a_ignorar:
+                    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+                    semiancho = (x1 - x0) / 2 * factor_encogimiento
+                    semialto = (y1 - y0) / 2 * factor_encogimiento
                     rect = fitz.Rect(
-                        x0 - margen_pts, y0 - margen_pts,
-                        x1 + margen_pts, y1 + margen_pts,
+                        cx - semiancho, cy - semialto,
+                        cx + semiancho, cy + semialto,
                     )
                     pagina.add_redact_annot(rect)
                 pagina.apply_redactions()
