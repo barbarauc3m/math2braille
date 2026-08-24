@@ -254,20 +254,13 @@ function crearItemHistorial(doc) {
   meta.textContent =
     doc.num_paginas +
     (doc.num_paginas === 1 ? " página · Última apertura: " : " páginas · Última apertura: ") +
-    formatearFecha(doc.fecha_ultima_apertura);
+    formatearFecha(doc.fecha_ultima_apertura) + " UTC";
 
   info.appendChild(nombre);
   info.appendChild(meta);
 
   const acciones = document.createElement("div");
   acciones.className = "historial__acciones";
-
-  const btnAbrir = document.createElement("button");
-  btnAbrir.type = "button";
-  btnAbrir.className = "boton boton--principal";
-  btnAbrir.textContent = "Abrir";
-  btnAbrir.setAttribute("aria-label", "Abrir " + doc.nombre_archivo);
-  btnAbrir.addEventListener("click", () => abrirDelHistorial(doc));
 
   const btnEliminar = document.createElement("button");
   btnEliminar.type = "button";
@@ -276,8 +269,15 @@ function crearItemHistorial(doc) {
   btnEliminar.setAttribute("aria-label", "Eliminar " + doc.nombre_archivo);
   btnEliminar.addEventListener("click", () => eliminarDelHistorial(doc));
 
-  acciones.appendChild(btnAbrir);
+  const btnAbrir = document.createElement("button");
+  btnAbrir.type = "button";
+  btnAbrir.className = "boton boton--principal";
+  btnAbrir.textContent = "Abrir";
+  btnAbrir.setAttribute("aria-label", "Abrir " + doc.nombre_archivo);
+  btnAbrir.addEventListener("click", () => abrirDelHistorial(doc));
+
   acciones.appendChild(btnEliminar);
+  acciones.appendChild(btnAbrir);
 
   item.appendChild(info);
   item.appendChild(acciones);

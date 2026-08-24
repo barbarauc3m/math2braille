@@ -247,7 +247,7 @@ h3 {
 
 .modal {
   width: 100%;
-  max-width: 40rem;
+  max-width: 46rem;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
