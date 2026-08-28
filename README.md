@@ -92,3 +92,22 @@ Limpiar los ficheros
 ```bash
 rm -rf data/db/math2pix_test.sqlite data/uploads_test
 ```
+
+---
+
+### PYTEST
+
+Activar el venv del servicio a testear
+```bash
+source service/backend/venv/bin/activate
+```
+
+Instalar dependencias
+```bash
+pip install pytest pytest-cov httpx
+```
+
+Correr tests 
+```bash
+pytest tests/backend/
+```
