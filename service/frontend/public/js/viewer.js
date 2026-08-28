@@ -12,6 +12,7 @@ const indicadorPagina = document.getElementById("indicador-pagina");
 const btnAnterior = document.getElementById("btn-anterior");
 const btnSiguiente = document.getElementById("btn-siguiente");
 const btnCerrarDocumento = document.getElementById("btn-cerrar-documento");
+const btnOcrAutomatico = document.getElementById("btn-ocr-automatico");
 const contenedorPagina = document.getElementById("pagina-contenido");
 
 const panel = document.getElementById("panel-formula");
@@ -34,6 +35,15 @@ let paginaActual = Number.parseInt(parametros.get("pagina"), 10) || 1;
 let documento = null;
 let formulasPagina = [];
 let seleccionada = null;
+
+// "Procesar todas": si se activa, cada página cargada dispara el
+// procesamiento en bloque de sus fórmulas pendientes (sin esperar a
+// que el usuario las seleccione una a una). Vive solo en memoria: no
+// persiste entre sesiones ni recargas de esta pestaña.
+let ocrAutomatico = false;
+// Evita solapar dos lotes a la vez (p.ej. si el usuario cambia de
+// página muy rápido con el ajuste activado).
+let procesandoLote = false;
 
 
 /* Utilidades de MathML */
@@ -179,6 +189,14 @@ async function cargarPagina() {
   }
 
   pintarContenido(elementos);
+
+  if (ocrAutomatico) {
+    // Fire-and-forget: no se espera aquí (await) para no retrasar el
+    // resto de cargarPagina ni el anuncio de "página cargada" que ya
+    // emite pintarContenido; las regiones se van actualizando solas
+    // según llegan las traducciones.
+    procesarFormulasPendientesPagina();
+  }
 }
 
 function pintarContenido(elementos) {
@@ -232,7 +250,79 @@ function pintarContenido(elementos) {
 }
 
 
-/* Panel lateral */
+/* Procesar todas */
+async function procesarFormulasPendientesPagina() {
+  if (procesandoLote) {
+    return;
+  }
+
+  // Se capturan por referencia el array y el número de página de ESTE
+  // momento: si el usuario navega a otra página mientras el lote sigue
+  // en curso, pintarContenido ya habrá creado un array nuevo para
+  // formulasPagina, y esta comparación por referencia (===) es lo que
+  // permite detectarlo más abajo para ignorar eventos que lleguen
+  // tarde, en vez de actualizar regiones que ya no están en pantalla.
+  const entradasDeEstaPagina = formulasPagina;
+  const pendientes = entradasDeEstaPagina.filter((entrada) => !entrada.formula.mathml);
+  if (pendientes.length === 0) {
+    return;
+  }
+
+  procesandoLote = true;
+  let errores = 0;
+
+  try {
+    await procesarFormulasPagina(documentoId, paginaActual, (evento) => {
+      if (formulasPagina !== entradasDeEstaPagina) {
+        return;
+      }
+
+      if (evento.tipo === "progreso" && evento.formula) {
+        const entrada = entradasDeEstaPagina.find(
+          (e) => e.formula.id === evento.formula.id
+        );
+        if (!entrada) {
+          return;
+        }
+        entrada.formula = evento.formula;
+        refrescarRegion(entrada, seleccionada === entrada.numero);
+        if (seleccionada === entrada.numero) {
+          volcarFormulaEnPanel(entrada.formula);
+        }
+      } else if (evento.tipo === "error_formula") {
+        errores += 1;
+      }
+    });
+  } catch (error) {
+    procesandoLote = false;
+    if (formulasPagina === entradasDeEstaPagina) {
+      anunciar(
+        "No se ha podido procesar todas las fórmulas de esta página. " + error.mensaje,
+        "assertive"
+      );
+    }
+    return;
+  }
+
+  procesandoLote = false;
+  if (formulasPagina !== entradasDeEstaPagina) {
+    return;
+  }
+
+  const completadas = pendientes.length - errores;
+  if (errores === 0) {
+    anunciar("Procesar todas: " + completadas + " fórmulas traducidas.");
+  } else {
+    anunciar(
+      "Procesar todas: " +
+        completadas +
+        " fórmulas traducidas, " +
+        errores +
+        (errores === 1 ? " no se ha podido traducir." : " no se han podido traducir."),
+      "assertive"
+    );
+  }
+}
 function mostrarCargandoPanel(cargando) {
   panelCargando.hidden = !cargando;
   panelContenido.hidden = cargando;
@@ -280,7 +370,7 @@ async function seleccionarFormula(numero) {
   panelMeta.textContent =
     "Página " +
     entrada.formula.pagina +
-    " · Confianza de detección: " +
+    " · Confianza detección YOLO: " +
     Math.round((entrada.formula.confidence_score || 0) * 100) +
     " %";
   mostrarAvisoPanel("");
@@ -422,8 +512,29 @@ if (btnAnterior && btnSiguiente && btnCerrarDocumento) {
   });
 }
 
+function actualizarBotonOcrAutomatico() {
+  btnOcrAutomatico.textContent = "Procesar todas las fórmulas: " + (ocrAutomatico ? "Activado" : "Desactivado");
+  btnOcrAutomatico.disabled = ocrAutomatico;
+}
+
+if (btnOcrAutomatico) {
+  btnOcrAutomatico.addEventListener("click", () => {
+    // Botón de una sola dirección: activa y se deshabilita. No hay
+    // vuelta atrás porque no tendría sentido "desprocesar" las
+    // fórmulas ya traducidas de las páginas ya visitadas.
+    if (ocrAutomatico) {
+      return;
+    }
+    ocrAutomatico = true;
+    actualizarBotonOcrAutomatico();
+    anunciar("Procesando las fórmulas pendientes de esta página.");
+    procesarFormulasPendientesPagina();
+  });
+}
+
 
 /* Arranque */
+actualizarBotonOcrAutomatico();
 inicializarAnuncios();
 
 cargarDocumento();

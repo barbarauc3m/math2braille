@@ -55,25 +55,14 @@ async function pedirJson(ruta, opciones = {}) {
   return respuesta.json();
 }
 
-/* Documentos */
-
-async function subirDocumento(archivo, alRecibirEvento) {
-  const datos = new FormData();
-  datos.append("file", archivo);
-
-  let respuesta;
-  try {
-    respuesta = await fetch(url("/documentos"), { method: "POST", body: datos });
-  } catch (error) {
-    throw new ErrorApi(
-      "No se ha podido contactar con el servidor. Comprueba que el backend está en marcha.",
-      0
-    );
-  }
-
-  if (!respuesta.ok) {
-    throw new ErrorApi(await leerDetalleError(respuesta), respuesta.status);
-  }
+/**
+ * Lee un cuerpo de respuesta en formato NDJSON (una línea = un objeto
+ * JSON independiente) y llama a alRecibirEvento por cada línea válida,
+ * según van llegando. Compartido por subirDocumento y
+ * procesarFormulasPagina, que son los dos endpoints que devuelven este
+ * formato de streaming.
+ */
+async function leerFlujoNdjson(respuesta, alRecibirEvento) {
   if (!respuesta.body) {
     throw new ErrorApi("El servidor no ha devuelto ningún flujo de progreso.", 0);
   }
@@ -113,6 +102,29 @@ async function subirDocumento(archivo, alRecibirEvento) {
   procesarLinea(pendiente);
 }
 
+/* Documentos */
+
+async function subirDocumento(archivo, alRecibirEvento) {
+  const datos = new FormData();
+  datos.append("file", archivo);
+
+  let respuesta;
+  try {
+    respuesta = await fetch(url("/documentos"), { method: "POST", body: datos });
+  } catch (error) {
+    throw new ErrorApi(
+      "No se ha podido contactar con el servidor. Comprueba que el backend está en marcha.",
+      0
+    );
+  }
+
+  if (!respuesta.ok) {
+    throw new ErrorApi(await leerDetalleError(respuesta), respuesta.status);
+  }
+
+  await leerFlujoNdjson(respuesta, alRecibirEvento);
+}
+
 async function listarDocumentos() {
   const datos = await pedirJson("/documentos");
   return datos && Array.isArray(datos.documentos) ? datos.documentos : [];
@@ -145,4 +157,33 @@ function guardarFormula(formulaId, mathml) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mathml }),
   });
+}
+
+/**
+ * "Procesar todas": procesa en bloque todas las fórmulas todavía sin
+ * mathml de una página. alRecibirEvento recibe cada línea del stream
+ * NDJSON según llega: {"tipo": "progreso", formula, ...},
+ * {"tipo": "error_formula", formula_id, detalle} para una fórmula que
+ * falla sin frenar el resto, y {"tipo": "completado"} o
+ * {"tipo": "error", detalle} al final.
+ */
+async function procesarFormulasPagina(documentoId, numeroPagina, alRecibirEvento) {
+  let respuesta;
+  try {
+    respuesta = await fetch(
+      url(`/documentos/${documentoId}/paginas/${numeroPagina}/procesar`),
+      { method: "POST" }
+    );
+  } catch (error) {
+    throw new ErrorApi(
+      "No se ha podido contactar con el servidor. Comprueba que el backend está en marcha.",
+      0
+    );
+  }
+
+  if (!respuesta.ok) {
+    throw new ErrorApi(await leerDetalleError(respuesta), respuesta.status);
+  }
+
+  await leerFlujoNdjson(respuesta, alRecibirEvento);
 }

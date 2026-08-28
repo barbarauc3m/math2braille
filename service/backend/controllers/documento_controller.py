@@ -160,3 +160,65 @@ def obtener_contenido_pagina(
             elementos_out.append(ElementoFormulaOut(formula=_formula_a_schema(e["formula"])))
 
     return ContenidoPaginaOut(elementos=elementos_out)
+
+
+@router.post("/{documento_id}/paginas/{numero_pagina}/procesar")
+def procesar_formulas_pagina(
+    documento_id: int,
+    numero_pagina: int,
+    formula_service: FormulaService = Depends(get_formula_service),
+):
+    """
+    "Procesar todas" (ajuste opcional del visor): procesa en bloque
+    todas las fórmulas todavía sin mathml de una página, en vez de
+    esperar a que el usuario las seleccione una a una.
+
+    Mismo patrón de streaming NDJSON que subir_documento: una línea por
+    fórmula traducida ({"tipo": "progreso", ...}), una línea por
+    fórmula que falla sin frenar el resto del lote
+    ({"tipo": "error_formula", ...}), y una línea final de cierre
+    ({"tipo": "completado", ...} o {"tipo": "error", ...} si el
+    documento no existe).
+    """
+    eventos: "queue.Queue" = queue.Queue()
+    resultado: dict = {}
+
+    def procesar():
+        def on_progreso(indice: int, total: int, formula):
+            eventos.put({
+                "tipo": "progreso",
+                "indice": indice,
+                "total": total,
+                "formula": _formula_a_schema(formula).model_dump(),
+            })
+
+        def on_error_formula(formula_id: int, detalle: str):
+            eventos.put({"tipo": "error_formula", "formula_id": formula_id, "detalle": detalle})
+
+        try:
+            formula_service.procesar_formulas_pagina(
+                documento_id, numero_pagina,
+                on_progreso=on_progreso, on_error_formula=on_error_formula,
+            )
+        except DocumentoNoEncontradoError as e:
+            resultado["error"] = str(e)
+        finally:
+            eventos.put(None)  # señal de fin de stream
+
+    hilo = threading.Thread(target=procesar, daemon=True)
+    hilo.start()
+
+    def event_stream():
+        while True:
+            evento = eventos.get()
+            if evento is None:
+                break
+            yield json.dumps(evento) + "\n"
+
+        hilo.join()
+        if "error" in resultado:
+            yield json.dumps({"tipo": "error", "detalle": resultado["error"]}) + "\n"
+        else:
+            yield json.dumps({"tipo": "completado"}) + "\n"
+
+    return StreamingResponse(event_stream(), media_type="application/x-ndjson")
