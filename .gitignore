@@ -1,25 +1,42 @@
-# Python
+# Python y entornos virtuales (recursivo en cualquier subcarpeta)
+**/__pycache__/
 __pycache__/
 *.pyc
 *.pyo
 .venv/
+**/venv/
 venv/
 *.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Modelo yolo
+# Modelos y pesos pesados
 service/yolo/model/*.pt
+service/yolo/model/*.onnx
 !service/yolo/model/.gitkeep
 
-# Datos generados en ejecución
+# Datos generados en ejecución (raíz y dentro de service/backend/)
 data/db/*.sqlite
 data/uploads/*
 !data/db/.gitkeep
 !data/uploads/.gitkeep
+service/backend/data/db/*.sqlite
+service/backend/data/uploads/*
+!service/backend/data/db/.gitkeep
+!service/backend/data/uploads/.gitkeep
+
+# Resultados y capturas de prueba temporales
+service/yolo/results/*
+!service/yolo/results/.gitkeep
+service/backend/*.png
+service/backend/*.pdf
+service/ocr/*.png
 
 # Entorno
 .env
 
-# Sistema, editor
+# Sistema y editor
 .DS_Store
 .vscode/
 .idea/
