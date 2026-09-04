@@ -7,6 +7,9 @@ omit =
     service/backend/aux2.py
     service/backend/prueba.py
     */venv/*
+    */.venv/*
+    */__pycache__/*
+    */tests/*
     */site-packages/*
 
 [report]
