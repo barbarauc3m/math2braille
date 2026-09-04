@@ -90,3 +90,8 @@ source service/backend/venv/bin/activate  # Activar entorno virtual de service/b
 pip install pytest pytest-cov httpx
 pytest tests/backend/   
 ```
+
+## Documentación auxiliar. Licencia
+
+Este proyecto está bajo la Licencia **GNU Affero General Public License v3.0** (AGPL-3.0). 
+Consulta el archivo [LICENSE](LICENSE) para ver los términos completos.
