@@ -3,17 +3,17 @@ version: "3.9"
 services:
   yolo:
     build: ./service/yolo
-    container_name: math2pix-yolo
+    container_name: math2braille-yolo
     volumes:
       - ./service/yolo/model:/app/model:ro
     networks:
-      - math2pix-net
+      - math2braille-net
       
   ocr:
     build: ./service/ocr
-    container_name: math2pix-ocr
+    container_name: math2braille-ocr
     networks:
-      - math2pix-net
+      - math2braille-net
     deploy:
       resources:
         limits:
@@ -21,14 +21,14 @@ services:
 
   backend:
     build: ./service/backend
-    container_name: math2pix-backend
+    container_name: math2braille-backend
     depends_on:
       - yolo
       - ocr
     environment:
       - YOLO_SERVICE_URL=http://yolo:8000
       - OCR_SERVICE_URL=http://ocr:8000
-      - DATABASE_PATH=/app/data/db/math2pix.sqlite
+      - DATABASE_PATH=/app/data/db/math2braille.sqlite
       - UPLOADS_PATH=/app/data/uploads
       - FRONTEND_ORIGIN=http://127.0.0.1,http://localhost
     volumes:
@@ -36,18 +36,18 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     networks:
-      - math2pix-net
+      - math2braille-net
 
   frontend:
     build: ./service/frontend
-    container_name: math2pix-frontend
+    container_name: math2braille-frontend
     depends_on:
       - backend
     ports:
       - "127.0.0.1:80:80"
     networks:
-      - math2pix-net
+      - math2braille-net
 
 networks:
-  math2pix-net:
+  math2braille-net:
     driver: bridge

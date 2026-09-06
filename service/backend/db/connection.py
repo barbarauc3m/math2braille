@@ -11,7 +11,7 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
-DATABASE_PATH = os.environ.get("DATABASE_PATH", "./data/db/math2pix.sqlite")
+DATABASE_PATH = os.environ.get("DATABASE_PATH", "./data/db/math2braille.sqlite")
 SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
 

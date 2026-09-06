@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import FRONTEND_ORIGINS
 from controllers import documento_controller, formula_controller
 
-app = FastAPI(title="math2pix - service/backend")
+app = FastAPI(title="math2braille - service/backend")
 
 app.add_middleware(
     CORSMiddleware,

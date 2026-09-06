@@ -10,7 +10,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from src.recognizer import load_recognizer
 from src.schemas import OcrResponse
 
-app = FastAPI(title="math2pix - service/ocr")
+app = FastAPI(title="math2braille - service/ocr")
 recognizer = load_recognizer()
 
 

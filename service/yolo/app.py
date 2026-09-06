@@ -11,7 +11,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from src.detector import load_detector
 from src.schemas import BoundingBox, DetectionResponse
 
-app = FastAPI(title="math2pix - service/yolo")
+app = FastAPI(title="math2braille - service/yolo")
 detector = load_detector()
 
 
